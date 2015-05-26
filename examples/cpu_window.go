@@ -18,7 +18,7 @@ func main() {
 	key := []string{"cpu"}
 
 	go func() {
-		for range time.Tick(time.Millisecond * 500) {
+		for _ = range time.Tick(time.Millisecond * 500) {
 			v, _ := cpu.CPUPercent(0, false)
 			cpuSink.AddSample(key, float32(v[0]))
 		}
@@ -26,7 +26,7 @@ func main() {
 
 	time.Sleep(time.Second * 1)
 
-	for range time.Tick(time.Second * 1) {
+	for _ = range time.Tick(time.Second * 1) {
 		log.Printf("5s: %05.2f%%, 15s: %05.2f%%, 60s: %05.2f%%\n",
 			cpu5.Sample(key).Mean(),
 			cpu15.Sample(key).Mean(),
