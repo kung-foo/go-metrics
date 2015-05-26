@@ -15,8 +15,8 @@ import (
 TODO
 * DONE ReverseDo
 * NOPE Pre-allocate TimeStampedValue
-* Keep track of count/sum/sum^2 on each ingest/filter
-* filter on each ingest
+* DONE Keep track of count/sum/sum^2 on each ingest/filter
+* NOPE filter on each ingest
 * DONE smart filter/short circuit using ReverseDo
 * DONE do/rdo fn return bool
 
@@ -47,17 +47,19 @@ func NewWindowSink(maxAge time.Duration, maxValues int) *WindowSink {
 
 type ValueRing struct {
 	sync.RWMutex
-	r      *ring.Ring
-	maxAge time.Duration
-	count  int
-	sum    float64
-	sumSq  float64
+	r         *ring.Ring
+	maxValues int
+	maxAge    time.Duration
+	count     int
+	sum       float64
+	sumSq     float64
 }
 
 func NewValueRing(maxValues int, maxAge time.Duration) *ValueRing {
 	vr := &ValueRing{
-		r:      ring.New(maxValues),
-		maxAge: maxAge,
+		r:         ring.New(maxValues),
+		maxValues: maxValues,
+		maxAge:    maxAge,
 	}
 	return vr
 }
@@ -140,8 +142,8 @@ func (vr *ValueRing) ingest(val float32) {
 	vr.r = vr.r.Next()
 	vr.r.Value = newTimeStampedValue(val)
 	vr.count++
-	if vr.count > vr.r.Len() {
-		vr.count = vr.r.Len()
+	if vr.count > vr.maxValues {
+		vr.count = vr.maxValues
 	}
 
 	vr.sum += float64(val)
