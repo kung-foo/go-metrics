@@ -140,6 +140,10 @@ func (vr *ValueRing) ingest(val float32) {
 	defer vr.Unlock()
 
 	vr.r = vr.r.Next()
+	if vr.r.Value != nil {
+		tsv := vr.r.Value.(*TimeStampedValue)
+		vr.decrementTSV(tsv)
+	}
 	vr.r.Value = newTimeStampedValue(val)
 	vr.count++
 	if vr.count > vr.maxValues {
@@ -174,8 +178,7 @@ func (vr *ValueRing) filter() {
 		if r.Value != nil {
 			tsv, err := castAndCheck(now, vr.maxAge, r)
 			if err == errExpiredValue {
-				vr.sum -= float64(tsv.Value)
-				vr.sumSq -= float64(tsv.Value) * float64(tsv.Value)
+				vr.decrementTSV(tsv)
 				r.Value = nil
 				vr.count--
 			}
@@ -185,6 +188,11 @@ func (vr *ValueRing) filter() {
 	}
 
 	vr.rdo(f)
+}
+
+func (vr *ValueRing) decrementTSV(tsv *TimeStampedValue) {
+	vr.sum -= float64(tsv.Value)
+	vr.sumSq -= float64(tsv.Value) * float64(tsv.Value)
 }
 
 func (vr *ValueRing) Count() int {
