@@ -5,6 +5,8 @@ import (
 	"math"
 	"testing"
 	"time"
+
+	"github.com/pkg/profile"
 )
 
 func TestWindowSink(t *testing.T) {
@@ -19,6 +21,11 @@ func TestWindowSink(t *testing.T) {
 	c := ws.Sample(key).Count()
 	if c != 4 {
 		t.Fatalf("invalid count: %d", c)
+	}
+
+	s := ws.Sample(key).Sum()
+	if s != 10 {
+		t.Fatalf("invalid sum: %f", s)
 	}
 
 	mean := ws.Sample(key).Mean()
@@ -45,7 +52,13 @@ func TestWindowSink(t *testing.T) {
 
 	c = ws.Sample(key).Count()
 	if c != 4 {
-		t.Fatalf("unxpected new value count: %d", c)
+		t.Fatalf("unxpected new value count: %f", c)
+	}
+
+	// sum should still equal 10 since the oldest sample is overritten
+	s = ws.Sample(key).Sum()
+	if s != 10 {
+		t.Fatalf("invalid sum: %d", s)
 	}
 
 	slice := ws.Sample(key).ToSlice()
@@ -163,13 +176,48 @@ func TestWindowSinkShortCircuit(t *testing.T) {
 	}
 }
 
-func BenchmarkSample(b *testing.B) {
+func BenchmarkSample1E4(b *testing.B) {
 	key := []string{"foo"}
-	ws := NewWindowSink(time.Minute*1, 1000)
+	ws := NewWindowSink(time.Minute*1, int(1E4))
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
+		ws.AddSample(key, float32(i))
+	}
+}
+
+func BenchmarkSample1E5(b *testing.B) {
+	key := []string{"foo"}
+	ws := NewWindowSink(time.Minute*1, int(1E5))
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		ws.AddSample(key, float32(i))
+	}
+}
+
+func BenchmarkSample1E6(b *testing.B) {
+	key := []string{"foo"}
+	ws := NewWindowSink(time.Minute*1, int(1E6))
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		ws.AddSample(key, float32(i))
+	}
+}
+
+func TestWindowSinkProfile(t *testing.T) {
+	t.SkipNow()
+
+	defer profile.Start(profile.CPUProfile).Stop()
+	key := []string{"foo"}
+	sz := int(1E7)
+	ws := NewWindowSink(time.Minute*1, sz)
+
+	for i := 0; i < sz; i++ {
 		ws.AddSample(key, 1.0)
 	}
 }
