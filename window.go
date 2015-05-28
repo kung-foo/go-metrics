@@ -81,8 +81,8 @@ func (tsv *TimeStampedValue) String() string {
 }
 
 func (ws *WindowSink) Sample(key []string) *ValueRing {
-	ws.Lock()
-	defer ws.Unlock()
+	ws.RLock()
+	defer ws.RUnlock()
 
 	k := ws.flattenKey(key)
 	s, ok := ws.samples[k]
