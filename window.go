@@ -40,8 +40,8 @@ func NewWindowSink(maxAge time.Duration, maxValues int) *WindowSink {
 	ws := &WindowSink{
 		maxAge:    maxAge,
 		maxValues: maxValues,
-		samples:   make(map[string]*ValueRing),
 	}
+	ws.Reset()
 	return ws
 }
 
@@ -78,6 +78,10 @@ func newTimeStampedValue(v float32) *TimeStampedValue {
 
 func (tsv *TimeStampedValue) String() string {
 	return fmt.Sprintf("<Recorded:%s Value:%f>", tsv.Recorded, tsv.Value)
+}
+
+func (ws *WindowSink) Reset() {
+	ws.samples = make(map[string]*ValueRing)
 }
 
 func (ws *WindowSink) Sample(key []string) *ValueRing {

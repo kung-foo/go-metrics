@@ -3,6 +3,7 @@ package metrics
 import (
 	"container/ring"
 	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -41,11 +42,6 @@ func TestWindowSink(t *testing.T) {
 	max := ws.Sample(key).Max()
 	if max != 4.0 {
 		t.Fatalf("unxpected max: %f", max)
-	}
-
-	stddev := ws.Sample(key).Stddev()
-	if stddev != math.Sqrt(float64(5)/3) {
-		t.Fatalf("unxpected stddev: %f", stddev)
 	}
 
 	ws.AddSample(key, 1.0)
@@ -220,4 +216,67 @@ func TestWindowSinkProfile(t *testing.T) {
 	for i := 0; i < sz; i++ {
 		ws.AddSample(key, 1.0)
 	}
+}
+
+func TestWindowSinkInvalidSample(t *testing.T) {
+	ws := NewWindowSink(time.Minute, 1)
+	if ws.Sample([]string{"foo"}) != nil {
+		t.Fatal("expected nil")
+	}
+}
+
+func TestWindowSinkValueString(t *testing.T) {
+	ws := NewWindowSink(time.Minute, 1)
+	key := []string{"foo"}
+	ws.AddSample(key, 1.0)
+	str := ws.Sample(key).ToSlice()[0].String()
+	if !strings.Contains(str, "Value:1.0") {
+		t.Fatalf("expected \"Value:1.0\", got \"%s\"", str)
+	}
+}
+
+func TestWindowSinkStddev(t *testing.T) {
+	ws := NewWindowSink(time.Millisecond*50, 4)
+	key := []string{"foo"}
+
+	ws.AddSample(key, 1.0)
+	ws.AddSample(key, 2.0)
+	ws.AddSample(key, 3.0)
+	ws.AddSample(key, 4.0)
+
+	stddev := ws.Sample(key).Stddev()
+	if stddev != math.Sqrt(float64(5)/3) {
+		t.Fatalf("unxpected stddev: %f", stddev)
+	}
+
+	ws.Reset()
+
+	ws.AddSample(key, 1.0)
+	stddev = ws.Sample(key).Stddev()
+
+	if stddev != 0.0 {
+		t.Fatalf("unxpected stddev: %f", stddev)
+	}
+}
+
+func TestWindowSinkEmpty(t *testing.T) {
+	ws := NewWindowSink(time.Millisecond*5, 1)
+	key := []string{"foo"}
+
+	ws.AddSample(key, 1.0)
+
+	time.Sleep(time.Millisecond * 10)
+
+	s := ws.Sample(key)
+
+	min := s.Min()
+	if min != 0.0 {
+		t.Fatalf("unxpected min: %f", min)
+	}
+
+	max := s.Max()
+	if max != 0.0 {
+		t.Fatalf("unxpected max: %f", max)
+	}
+
 }
